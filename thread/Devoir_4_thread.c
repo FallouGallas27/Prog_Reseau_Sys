@@ -3,63 +3,54 @@
 #include <semaphore.h>
 #include <stdlib.h>
 
-sem_t semaphore;
+sem_t sem1,sem2;
 int n = 20, i = 0;
 pthread_mutex_t mutex;
 
 void *thread_1(void *param) {
-    for (int j = 0; j < n; j++) {
-        pthread_mutex_lock(&mutex);
-        printf(": %d\n", i++);
-        pthread_mutex_unlock(&mutex);
+    while(1){
+        sem_wait(&sem1);
+        while(i<=n){
+            printf("%d         NaN\n", i++);}
+         sem_post(&sem2);
+
     }
-         sem_post(&semaphore);
-   return NULL;
+   pthread_exit(NULL);
 }
 
 void *thread_2(void *param) {
-         sem_wait(&semaphore);
-    for (int j = 0; j < n; j++) {
-        pthread_mutex_lock(&mutex);
-        printf(": %d\n", i--);
-        pthread_mutex_unlock(&mutex);
+    while(1){
+        sem_wait(&sem2);
+        while(i>0){
+        printf("NaN         %d\n", --i);}
+        sem_post(&sem1);
     }
-    return NULL;
+    pthread_exit(NULL);
 }
 
 int main(int argc, char *argv[]) {
     printf("Utilisation des threads \n");
-
-    int err = sem_init(&semaphore, 0, 0);
+    pthread_t th1,th2;
+    int err = sem_init(&sem1, 0, 1);
     if (err != 0) {
-        printf("\nErreur sem_init :[%d]", err);
+        printf("\nErreur sem_init :", err);
         exit(EXIT_FAILURE);
     }
-
-    pthread_mutex_init(&mutex, NULL);
-
-    pthread_t thread[2];
-    void *(*func[])(void *) = {thread_1, thread_2};
-
-    for (int i = 0; i < 2; i++) {
-        err = pthread_create(&(thread[i]), NULL, func[i], NULL);
-        if (err != 0) {
-            printf("\nErreur de création du thread :[%d]", err);
-            exit(EXIT_FAILURE);
-        }
+     err = sem_init(&sem2, 0, 0);
+    if (err != 0) {
+        printf("\nErreur sem_init :", err);
+        exit(EXIT_FAILURE);
     }
-
-    for (int i = 0; i < 2; i++) {
-        err = pthread_join(thread[i], NULL);
-        if (err != 0) {
-            printf("\nErreur pthread_join :[%d]", err);
-            exit(EXIT_FAILURE);
-        }
+    err=pthread_create(&th1,NULL,thread_1,(void*)NULL);
+    if(err==-1){
+        perror("Erreur de lancement \n");
+        return 0;
     }
-
-    sem_destroy(&semaphore);
-    pthread_mutex_destroy(&mutex);
-
-    return EXIT_SUCCESS;
+     err=pthread_create(&th1,NULL,thread_2,(void*)NULL);
+    if(err==-1){
+        perror("Erreur de lancement \n");
+        return 0;
+    }
+    pthread_join(th1,NULL);
+    pthread_join(th2,NULL);
 }
-
